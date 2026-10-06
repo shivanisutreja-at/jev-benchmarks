@@ -4,7 +4,7 @@ async function main() {
   console.log('--- Testing Jev (System 1) via OpenRouter ---');
 
   const testConversation = `Employee: Hello, my June salary has not been credited yet. It has been 3 days since the usual pay date.
-Agent: I understand your concern. Did you receive any notification from your manager or finance about a processing delay?
+Helpdesk Agent: I understand your concern. Did you receive any notification from your manager or finance about a processing delay?
 Employee: No notification at all. My teammates in the same department got theirs on Friday.`;
 
   console.log('\nInput Conversation:');

@@ -34,11 +34,13 @@ const DEFAULT_PRICING: Record<string, { input: number; output: number }> = {
  * Expects `{"category": "DTE"}` or markdown fenced code block, or standalone category code.
  */
 export function extractCategoryFromResponse(text: string): string {
+  console.log("TEXT:::: ", text);
   const cleaned = text.trim();
 
   // 1. Try direct JSON parse
   try {
     const parsed = JSON.parse(cleaned);
+    console.log("PARSED:::: ", parsed);
     if (parsed.category) return String(parsed.category).toUpperCase();
   } catch {
     // ignore
@@ -90,6 +92,8 @@ export async function classifyWithEfficia(
     }),
   });
 
+  console.log("RESPONSE:::: ", response);
+
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`Efficia API error (${response.status}) on deployment ${config.deploymentId}: ${errorText}`);
@@ -117,18 +121,20 @@ export async function classifyWithEfficia(
         const trimmed = line.trim();
         if (!trimmed || trimmed.startsWith(':')) continue;
 
-        if (trimmed.startsWith('data: ')) {
-          const rawData = trimmed.slice(6);
+        if (trimmed.startsWith('data:')) {
+          const rawData = trimmed.replace(/^data:\s*/, '');
           if (rawData === '[DONE]') continue;
 
           try {
             const parsed = JSON.parse(rawData);
-            // Handle different event formats (Vercel AI SDK or Efficia events)
+            // Handle different event formats (Efficia token events, Vercel AI SDK, etc.)
             if (typeof parsed === 'string') {
               accumulatedText += parsed;
-            } else if (parsed.content) {
+            } else if (parsed.token !== undefined) {
+              accumulatedText += parsed.token;
+            } else if (parsed.content !== undefined) {
               accumulatedText += parsed.content;
-            } else if (parsed.text) {
+            } else if (parsed.text !== undefined) {
               accumulatedText += parsed.text;
             } else if (parsed.type === 'chunk' && parsed.chunk) {
               accumulatedText += parsed.chunk;
@@ -140,8 +146,10 @@ export async function classifyWithEfficia(
               reportedCompletionTokens = parsed.usage.completionTokens ?? parsed.usage.completion_tokens ?? 0;
             }
           } catch {
-            // Raw text chunk
-            accumulatedText += rawData;
+            // Raw text chunk fallback (if not JSON formatted)
+            if (!rawData.startsWith('{') && !rawData.startsWith('[')) {
+              accumulatedText += rawData;
+            }
           }
         }
       }
