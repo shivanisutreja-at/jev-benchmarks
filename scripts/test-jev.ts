@@ -18,7 +18,12 @@ Employee: No notification at all. My teammates in the same department got theirs
     console.log(`• Selected Category: ${result.category}`);
     console.log(`• Confidence: ${(((result.confidence ?? 1)) * 100).toFixed(1)}%`);
     console.log(`• Latency: ${result.latencyMs} ms`);
-    console.log(`• Estimated Cost: $${result.costUsd.toFixed(6)}`);
+    console.log(`• Input Tokens: ${result.promptTokens}`);
+    console.log(`• Output Tokens: ${result.completionTokens}`);
+    console.log(`• Total Tokens: ${result.totalTokens}`);
+    console.log(`• Input Cost: $${result.inputCostUsd.toFixed(6)}`);
+    console.log(`• Output Cost: $${result.outputCostUsd.toFixed(6)}`);
+    console.log(`• Total Cost: $${result.totalCostUsd.toFixed(6)}`);
     if (result.probabilities) {
       console.log('\nCategory Probabilities:');
       console.dir(result.probabilities, { depth: null });

@@ -7,6 +7,7 @@ import { openAIAdapter } from './openai-client.js';
 import { deepSeekAdapter } from './deepseek-client.js';
 import { getBenchmarkConfig } from './config.js';
 import { Scenario, generateScenarios } from './generate-dataset.js';
+import { generateHtmlReport } from './html-report-generator.js';
 
 dotenv.config();
 
@@ -20,8 +21,12 @@ interface ModelMetrics {
   multiIntentTotal: number;
   multiIntentCorrect: number;
   latencies: number[];
-  totalCostUsd: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
   totalTokens: number;
+  totalInputCostUsd: number;
+  totalOutputCostUsd: number;
+  totalCostUsd: number;
   errors: number;
 }
 
@@ -36,8 +41,12 @@ function initMetrics(adapter: ModelAdapter): ModelMetrics {
     multiIntentTotal: 0,
     multiIntentCorrect: 0,
     latencies: [],
-    totalCostUsd: 0,
+    totalInputTokens: 0,
+    totalOutputTokens: 0,
     totalTokens: 0,
+    totalInputCostUsd: 0,
+    totalOutputCostUsd: 0,
+    totalCostUsd: 0,
     errors: 0,
   };
 }
@@ -169,17 +178,27 @@ async function main() {
         }
 
         metrics.latencies.push(res.latencyMs);
-        metrics.totalCostUsd += res.costUsd;
+        metrics.totalInputTokens += res.promptTokens;
+        metrics.totalOutputTokens += res.completionTokens;
         metrics.totalTokens += res.totalTokens;
+        metrics.totalInputCostUsd += res.inputCostUsd;
+        metrics.totalOutputCostUsd += res.outputCostUsd;
+        metrics.totalCostUsd += res.totalCostUsd;
 
         scenarioResult.results[adapter.id] = {
+          modelId: adapter.id,
+          modelName: adapter.name,
           category: res.category,
           strictMatch: isStrict,
           relaxedMatch: isRelaxed,
           confidence: res.confidence,
           latencyMs: res.latencyMs,
-          costUsd: res.costUsd,
+          inputTokens: res.promptTokens,
+          outputTokens: res.completionTokens,
           totalTokens: res.totalTokens,
+          inputCostUsd: res.inputCostUsd,
+          outputCostUsd: res.outputCostUsd,
+          totalCostUsd: res.totalCostUsd,
         };
 
         const icon = isStrict ? '✅' : (isRelaxed ? '🟡' : '❌');
@@ -187,7 +206,11 @@ async function main() {
         statusParts.push(`${adapter.id}: ${res.category}${confStr} ${icon} [${res.latencyMs}ms]`);
       } catch (err: any) {
         metrics.errors++;
-        scenarioResult.results[adapter.id] = { error: err.message };
+        scenarioResult.results[adapter.id] = {
+          modelId: adapter.id,
+          modelName: adapter.name,
+          error: err.message,
+        };
         statusParts.push(`${adapter.id}: ❌ Err (${err.message})`);
       }
     }
@@ -218,6 +241,11 @@ async function main() {
         'Multi-Intent Acc': `${m.multiIntentTotal > 0 ? ((m.multiIntentCorrect / m.multiIntentTotal) * 100).toFixed(1) : 0}%`,
         'Avg Latency': `${avgLatency} ms`,
         'P95 Latency': `${p95} ms`,
+        'Avg In Tokens': `${Math.round(m.totalInputTokens / m.totalRun)}`,
+        'Avg Out Tokens': `${Math.round(m.totalOutputTokens / m.totalRun)}`,
+        'Total Tokens': m.totalTokens.toLocaleString(),
+        'Input Cost ($)': `$${m.totalInputCostUsd.toFixed(4)}`,
+        'Output Cost ($)': `$${m.totalOutputCostUsd.toFixed(4)}`,
         'Total Cost ($)': `$${m.totalCostUsd.toFixed(4)}`,
         'Cost / 10k Decisions': `$${costPer10k.toFixed(3)}`,
         'Errors': m.errors,
@@ -235,23 +263,31 @@ async function main() {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const reportPath = path.join(reportsDir, `benchmark-results-${timestamp}.json`);
 
-  fs.writeFileSync(
-    reportPath,
-    JSON.stringify(
-      {
-        timestamp: new Date().toISOString(),
-        totalScenarios: scenarios.length,
-        configuredModels: activeAdapters.map(a => a.id),
-        summary: summaryRows,
-        details: detailedResults,
-      },
-      null,
-      2
-    ),
-    'utf-8'
-  );
+  const reportPayload = {
+    timestamp: new Date().toISOString(),
+    totalScenarios: scenarios.length,
+    configuredModels: activeAdapters.map(a => ({ id: a.id, name: a.name })),
+    summary: summaryRows,
+    details: detailedResults,
+  };
 
+  fs.writeFileSync(reportPath, JSON.stringify(reportPayload, null, 2), 'utf-8');
   console.log(`\n📄 Detailed JSON report saved to: ${reportPath}`);
+
+  // 7. Generate Interactive Visual HTML Dashboard
+  try {
+    const htmlContent = generateHtmlReport(reportPayload);
+    const htmlReportPath = path.join(reportsDir, `benchmark-results-${timestamp}.html`);
+    const latestHtmlPath = path.join(reportsDir, 'latest.html');
+
+    fs.writeFileSync(htmlReportPath, htmlContent, 'utf-8');
+    fs.writeFileSync(latestHtmlPath, htmlContent, 'utf-8');
+
+    console.log(`🌐 Visual HTML Dashboard saved to: ${latestHtmlPath}`);
+    console.log(`👉 Open in browser: file://${latestHtmlPath}\n`);
+  } catch (htmlErr: any) {
+    console.warn(`⚠️ Note: HTML dashboard generation skipped (${htmlErr.message})`);
+  }
 }
 
 main().catch(err => {

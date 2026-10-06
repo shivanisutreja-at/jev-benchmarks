@@ -100,8 +100,9 @@ export async function classifyWithJev(
     data.questions?.routing_category ||
     data;
 
-  const chosenCategory =
+  const chosenCategoryRaw =
     decision.choice || decision.selected || decision.value || Object.keys(decision.probabilities || {})[0] || 'UNC';
+  const chosenCategory = String(chosenCategoryRaw).trim().toUpperCase();
 
   const confidence = decision.confidence ?? decision.probability ?? 1.0;
   const probabilities = decision.probabilities || decision.distribution || {};
@@ -109,9 +110,12 @@ export async function classifyWithJev(
   const promptTokens = data.usage?.input_tokens ?? data.usage?.prompt_tokens ?? Math.ceil(conversationText.length / 4);
   const completionTokens = data.usage?.output_tokens ?? data.usage?.completion_tokens ?? 0;
   const totalTokens = promptTokens + completionTokens;
-  const costUsd = typeof data.usage?.cost === 'number'
+  const inputCostUsd = typeof data.usage?.cost === 'number'
     ? data.usage.cost
     : Number((promptTokens * JEV_INPUT_TOKEN_PRICE).toFixed(8));
+  const outputCostUsd = 0; // Jev output decisions are $0
+  const totalCostUsd = inputCostUsd;
+  const costUsd = totalCostUsd;
 
   return {
     category: chosenCategory,
@@ -121,6 +125,9 @@ export async function classifyWithJev(
     promptTokens,
     completionTokens,
     totalTokens,
+    inputCostUsd,
+    outputCostUsd,
+    totalCostUsd,
     costUsd,
     rawResponse: data,
   };

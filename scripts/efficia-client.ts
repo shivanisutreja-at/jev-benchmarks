@@ -146,7 +146,10 @@ export async function classifyWithEfficia(
   const completionTokens = reportedCompletionTokens || Math.ceil(accumulatedText.length / 4);
   const totalTokens = promptTokens + completionTokens;
 
-  const costUsd = Number((promptTokens * inputPrice + completionTokens * outputPrice).toFixed(8));
+  const inputCostUsd = Number((promptTokens * inputPrice).toFixed(8));
+  const outputCostUsd = Number((completionTokens * outputPrice).toFixed(8));
+  const totalCostUsd = Number((inputCostUsd + outputCostUsd).toFixed(8));
+  const costUsd = totalCostUsd;
   const category = extractCategoryFromResponse(accumulatedText);
 
   return {
@@ -156,6 +159,9 @@ export async function classifyWithEfficia(
     promptTokens,
     completionTokens,
     totalTokens,
+    inputCostUsd,
+    outputCostUsd,
+    totalCostUsd,
     costUsd,
     rawText: accumulatedText,
   };

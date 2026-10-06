@@ -14,7 +14,8 @@
     "run:benchmark": "tsx scripts/benchmark-runner.ts",
     "benchmark:jev": "tsx scripts/benchmark-runner.ts --models jev",
     "benchmark:openai": "tsx scripts/benchmark-runner.ts --models openai",
-    "benchmark:deepseek": "tsx scripts/benchmark-runner.ts --models deepseek"
+    "benchmark:deepseek": "tsx scripts/benchmark-runner.ts --models deepseek",
+    "view": "node -e 'const open = process.platform === \"darwin\" ? \"open\" : process.platform === \"win32\" ? \"start\" : \"xdg-open\"; require(\"child_process\").exec(`${open} reports/latest.html`);'"
   },
   "dependencies": {
     "dotenv": "^16.4.7"

@@ -3,10 +3,13 @@ export interface ClassificationResult {
   confidence?: number;
   probabilities?: Record<string, number>;
   latencyMs: number;
-  promptTokens: number;
-  completionTokens: number;
+  promptTokens: number; // input tokens
+  completionTokens: number; // output tokens
   totalTokens: number;
-  costUsd: number;
+  inputCostUsd: number;
+  outputCostUsd: number;
+  totalCostUsd: number;
+  costUsd: number; // alias for totalCostUsd
   rawText?: string;
   rawResponse?: any;
 }

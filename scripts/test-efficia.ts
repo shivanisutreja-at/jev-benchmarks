@@ -24,9 +24,12 @@ Employee: No notification at all. My teammates in the same department got theirs
     console.log('\n✅ Result Received:');
     console.log(`• Extracted Category: ${result.category}`);
     console.log(`• Latency: ${result.latencyMs} ms`);
-    console.log(`• Prompt Tokens: ${result.promptTokens}`);
-    console.log(`• Completion Tokens: ${result.completionTokens}`);
-    console.log(`• Total Cost: $${result.costUsd.toFixed(6)}`);
+    console.log(`• Input Tokens: ${result.promptTokens}`);
+    console.log(`• Output Tokens: ${result.completionTokens}`);
+    console.log(`• Total Tokens: ${result.totalTokens}`);
+    console.log(`• Input Cost: $${result.inputCostUsd.toFixed(6)}`);
+    console.log(`• Output Cost: $${result.outputCostUsd.toFixed(6)}`);
+    console.log(`• Total Cost: $${result.totalCostUsd.toFixed(6)}`);
     if (result.rawText) {
       console.log(`\n• Raw Model Response:\n${result.rawText}`);
     }

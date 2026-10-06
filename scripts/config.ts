@@ -67,12 +67,20 @@ export function getBenchmarkConfig(): BenchmarkConfig {
     selectedModels = process.env.BENCHMARK_MODELS.split(',').map(normalizeModelName);
   }
 
-  // 5. Parse limit flag: --limit 10
-  const limitIndex = args.indexOf('--limit');
-  if (limitIndex !== -1 && args[limitIndex + 1]) {
-    const parsedLimit = parseInt(args[limitIndex + 1], 10);
+  // 5. Parse limit flag: --limit 10 or --limit=10
+  const limitArg = args.find(arg => arg.startsWith('--limit='));
+  if (limitArg) {
+    const parsedLimit = parseInt(limitArg.split('=')[1], 10);
     if (!isNaN(parsedLimit)) {
       limit = parsedLimit;
+    }
+  } else {
+    const limitIndex = args.indexOf('--limit');
+    if (limitIndex !== -1 && args[limitIndex + 1]) {
+      const parsedLimit = parseInt(args[limitIndex + 1], 10);
+      if (!isNaN(parsedLimit)) {
+        limit = parsedLimit;
+      }
     }
   }
 
