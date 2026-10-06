@@ -1,0 +1,21 @@
+{
+  "name": "helpdesk-routing-benchmark",
+  "version": "1.0.0",
+  "description": "Head-to-head intent classification benchmark comparing Jev (System 1 via OpenRouter) against GPT-6 Luna and DeepSeek (via Efficia API).",
+  "main": "scripts/jev-client.ts",
+  "scripts": {
+    "test:jev": "tsx scripts/test-jev.ts",
+    "test:deepseek": "tsx scripts/test-efficia.ts deepseek",
+    "test:gpt": "tsx scripts/test-efficia.ts gpt",
+    "generate:data": "tsx scripts/generate-dataset.ts",
+    "run:benchmark": "tsx scripts/benchmark-runner.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
