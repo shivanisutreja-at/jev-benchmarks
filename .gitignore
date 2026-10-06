@@ -7,8 +7,9 @@ package-lock.json
 .env.*
 !.env.example
 
-# Build output
+# Build output & benchmark reports
 dist/
+reports/
 
 # System files
 .DS_Store

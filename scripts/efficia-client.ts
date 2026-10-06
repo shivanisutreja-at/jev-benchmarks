@@ -1,32 +1,21 @@
 import * as dotenv from 'dotenv';
-dotenv.config();
+import { ClassificationResult } from './types.js';
 
-export interface EfficiaClassificationResult {
-  category: string;
-  rawText: string;
-  latencyMs: number;
-  promptTokens: number;
-  completionTokens: number;
-  totalTokens: number;
-  costUsd: number;
-}
+dotenv.config();
 
 export interface EfficiaModelConfig {
   deploymentId: string;
   apiKey: string;
   baseUrl?: string;
   modelName: string;
-  // Per 1M tokens pricing
   inputTokenPricePerMillion?: number;
   outputTokenPricePerMillion?: number;
 }
 
-// Approximate default prices per million tokens if not explicitly known:
-// GPT-6 Luna / GPT-class: ~$2.50 input / $10.00 output
-// DeepSeek V3: ~$0.14 input / $0.28 output
-const DEFAULT_PRICING: Record<string, { input: number; output: number }> = {
+export const DEFAULT_EFFICIA_PRICING: Record<string, { input: number; output: number }> = {
+  openai: { input: 2.50, output: 10.00 }, // GPT-6 Luna / GPT-class
   gpt: { input: 2.50, output: 10.00 },
-  deepseek: { input: 0.14, output: 0.28 },
+  deepseek: { input: 0.14, output: 0.28 }, // DeepSeek V3
 };
 
 /**
@@ -34,13 +23,11 @@ const DEFAULT_PRICING: Record<string, { input: number; output: number }> = {
  * Expects `{"category": "DTE"}` or markdown fenced code block, or standalone category code.
  */
 export function extractCategoryFromResponse(text: string): string {
-  console.log("TEXT:::: ", text);
   const cleaned = text.trim();
 
   // 1. Try direct JSON parse
   try {
     const parsed = JSON.parse(cleaned);
-    console.log("PARSED:::: ", parsed);
     if (parsed.category) return String(parsed.category).toUpperCase();
   } catch {
     // ignore
@@ -67,16 +54,15 @@ export function extractCategoryFromResponse(text: string): string {
 export async function classifyWithEfficia(
   conversationText: string,
   config: EfficiaModelConfig
-): Promise<EfficiaClassificationResult> {
+): Promise<ClassificationResult> {
   const baseUrl = config.baseUrl || process.env.EFFICIA_API_BASE_URL || 'https://platform.efficia.io';
   const endpoint = `${baseUrl.replace(/\/$/, '')}/api/chat/agent/deployments/${config.deploymentId}`;
 
-  const pricing = config.modelName.toLowerCase().includes('deepseek')
-    ? DEFAULT_PRICING.deepseek
-    : DEFAULT_PRICING.gpt;
+  const isDeepSeek = config.modelName.toLowerCase().includes('deepseek');
+  const defaultPricing = isDeepSeek ? DEFAULT_EFFICIA_PRICING.deepseek : DEFAULT_EFFICIA_PRICING.gpt;
 
-  const inputPrice = (config.inputTokenPricePerMillion ?? pricing.input) / 1_000_000;
-  const outputPrice = (config.outputTokenPricePerMillion ?? pricing.output) / 1_000_000;
+  const inputPrice = (config.inputTokenPricePerMillion ?? defaultPricing.input) / 1_000_000;
+  const outputPrice = (config.outputTokenPricePerMillion ?? defaultPricing.output) / 1_000_000;
 
   const startTime = performance.now();
 
@@ -91,8 +77,6 @@ export async function classifyWithEfficia(
       externalUserId: 'benchmark-eval-user',
     }),
   });
-
-  console.log("RESPONSE:::: ", response);
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -127,7 +111,6 @@ export async function classifyWithEfficia(
 
           try {
             const parsed = JSON.parse(rawData);
-            // Handle different event formats (Efficia token events, Vercel AI SDK, etc.)
             if (typeof parsed === 'string') {
               accumulatedText += parsed;
             } else if (parsed.token !== undefined) {
@@ -140,13 +123,11 @@ export async function classifyWithEfficia(
               accumulatedText += parsed.chunk;
             }
 
-            // Extract usage if reported
             if (parsed.usage) {
               reportedPromptTokens = parsed.usage.promptTokens ?? parsed.usage.prompt_tokens ?? 0;
               reportedCompletionTokens = parsed.usage.completionTokens ?? parsed.usage.completion_tokens ?? 0;
             }
           } catch {
-            // Raw text chunk fallback (if not JSON formatted)
             if (!rawData.startsWith('{') && !rawData.startsWith('[')) {
               accumulatedText += rawData;
             }
@@ -161,7 +142,6 @@ export async function classifyWithEfficia(
   const endTime = performance.now();
   const latencyMs = Math.round((endTime - startTime) * 100) / 100;
 
-  // Fallback token estimation if provider did not stream token stats
   const promptTokens = reportedPromptTokens || Math.ceil(conversationText.length / 4);
   const completionTokens = reportedCompletionTokens || Math.ceil(accumulatedText.length / 4);
   const totalTokens = promptTokens + completionTokens;
@@ -171,11 +151,12 @@ export async function classifyWithEfficia(
 
   return {
     category,
-    rawText: accumulatedText,
+    confidence: 1.0,
     latencyMs,
     promptTokens,
     completionTokens,
     totalTokens,
     costUsd,
+    rawText: accumulatedText,
   };
 }

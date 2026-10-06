@@ -115,15 +115,33 @@ You can verify each model connection independently:
   npm run test:gpt
   ```
 
-### 3. Run the Full Benchmark
-Run all enabled models across the scenarios and display the comparison table:
+### 3. Run the Benchmark with Configurable Models
+
+You can run individual models, any alternate combination, or all configured models:
 
 ```bash
-# Run on all 250 scenarios
-npm run run:benchmark
+# Run only Jev
+npm run run:benchmark -- --models jev
+# Or use the npm shortcut:
+npm run benchmark:jev
 
-# Or run a quick smoke-test on the first 5 scenarios
-npx tsx scripts/benchmark-runner.ts --limit 5
+# Run only OpenAI (GPT-6 Luna)
+npm run run:benchmark -- --models openai
+npm run benchmark:openai
+
+# Run only DeepSeek
+npm run run:benchmark -- --models deepseek
+npm run benchmark:deepseek
+
+# Run alternate combinations:
+npm run run:benchmark -- --models jev,deepseek --limit 20
+npm run run:benchmark -- --models jev,openai --limit 10
+
+# Boolean flag syntax is also supported:
+npm run run:benchmark -- --jev --deepseek --limit 10
+
+# Run all configured models across all 250 scenarios:
+npm run run:benchmark
 ```
 
 Reports are automatically saved to `reports/benchmark-results-[timestamp].json`.
