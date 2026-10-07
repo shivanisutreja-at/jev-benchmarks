@@ -94,8 +94,21 @@ export async function classifyWithJev(
     decision.choice || decision.selected || decision.value || Object.keys(decision.probabilities || {})[0] || 'UNC';
   const chosenCategory = String(chosenCategoryRaw).trim().toUpperCase();
 
-  const confidence = decision.confidence ?? decision.probability ?? 1.0;
   const probabilities = decision.probabilities || decision.distribution || {};
+
+  let confidence: number | undefined = undefined;
+  if (typeof decision.confidence === 'number') {
+    confidence = decision.confidence;
+  } else if (typeof decision.probability === 'number') {
+    confidence = decision.probability;
+  } else if (typeof probabilities[chosenCategory] === 'number') {
+    confidence = probabilities[chosenCategory];
+  } else if (Object.keys(probabilities).length > 0) {
+    const numVals = Object.values(probabilities).filter((v: any) => typeof v === 'number') as number[];
+    if (numVals.length > 0) confidence = Math.max(...numVals);
+  } else {
+    confidence = 1.0;
+  }
 
   const promptTokens = data.usage?.input_tokens ?? data.usage?.prompt_tokens ?? Math.ceil(conversationText.length / 4);
   const completionTokens = data.usage?.output_tokens ?? data.usage?.completion_tokens ?? 0;

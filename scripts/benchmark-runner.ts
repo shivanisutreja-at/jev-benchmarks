@@ -21,6 +21,7 @@ interface ModelMetrics {
   multiIntentTotal: number;
   multiIntentCorrect: number;
   latencies: number[];
+  confidences: number[];
   totalInputTokens: number;
   totalOutputTokens: number;
   totalTokens: number;
@@ -41,6 +42,7 @@ function initMetrics(adapter: ModelAdapter): ModelMetrics {
     multiIntentTotal: 0,
     multiIntentCorrect: 0,
     latencies: [],
+    confidences: [],
     totalInputTokens: 0,
     totalOutputTokens: 0,
     totalTokens: 0,
@@ -152,6 +154,9 @@ async function main() {
       groundTruth: s.primary_category,
       secondaryCategories: s.secondary_categories,
       isMultiIntent: s.is_multi_intent,
+      difficulty: s.difficulty,
+      rationale: s.routing_rationale,
+      dialogue: s.formatted_dialogue,
       results: {},
     };
 
@@ -178,6 +183,9 @@ async function main() {
         }
 
         metrics.latencies.push(res.latencyMs);
+        if (typeof res.confidence === 'number') {
+          metrics.confidences.push(res.confidence);
+        }
         metrics.totalInputTokens += res.promptTokens;
         metrics.totalOutputTokens += res.completionTokens;
         metrics.totalTokens += res.totalTokens;
@@ -232,11 +240,15 @@ async function main() {
       const p50 = percentile(m.latencies, 50);
       const p95 = percentile(m.latencies, 95);
       const costPer10k = m.totalRun > 0 ? (m.totalCostUsd / m.totalRun) * 10_000 : 0;
+      const avgConf = m.confidences.length > 0
+        ? `${((m.confidences.reduce((a, b) => a + b, 0) / m.confidences.length) * 100).toFixed(1)}%`
+        : '—';
 
       return {
         'Model': m.adapter.name,
         'Strict Acc %': `${((m.strictCorrect / m.totalRun) * 100).toFixed(1)}%`,
         'Relaxed Acc %': `${((m.relaxedCorrect / m.totalRun) * 100).toFixed(1)}%`,
+        'Avg Conf %': avgConf,
         'Single-Intent Acc': `${m.singleIntentTotal > 0 ? ((m.singleIntentCorrect / m.singleIntentTotal) * 100).toFixed(1) : 0}%`,
         'Multi-Intent Acc': `${m.multiIntentTotal > 0 ? ((m.multiIntentCorrect / m.multiIntentTotal) * 100).toFixed(1) : 0}%`,
         'Avg Latency': `${avgLatency} ms`,

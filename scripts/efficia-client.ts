@@ -152,9 +152,21 @@ export async function classifyWithEfficia(
   const costUsd = totalCostUsd;
   const category = extractCategoryFromResponse(accumulatedText);
 
+  // Extract confidence only if the LLM explicitly returned a confidence score in JSON
+  let extractedConfidence: number | undefined = undefined;
+  try {
+    const parsed = JSON.parse(accumulatedText.trim());
+    if (typeof parsed.confidence === 'number') {
+      extractedConfidence = parsed.confidence;
+    }
+  } catch {
+    const confMatch = accumulatedText.match(/"confidence"\s*:\s*([0-9.]+)/i);
+    if (confMatch) extractedConfidence = parseFloat(confMatch[1]);
+  }
+
   return {
     category,
-    confidence: 1.0,
+    confidence: extractedConfidence,
     latencyMs,
     promptTokens,
     completionTokens,
