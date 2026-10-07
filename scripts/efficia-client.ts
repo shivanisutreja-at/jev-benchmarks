@@ -16,7 +16,10 @@ export const DEFAULT_EFFICIA_PRICING: Record<string, { input: number; output: nu
   openai: { input: 2.50, output: 10.00 }, // GPT-6 Luna / GPT-class
   gpt: { input: 2.50, output: 10.00 },
   deepseek: { input: 0.14, output: 0.28 }, // DeepSeek V3
+  claude: { input: 2.00, output: 10.00 }, // Claude Sonnet 5.5 list price
 };
+
+const EFFICIA_AGENT_ERROR_PATTERN = /^I encountered an error while processing your request/i;
 
 /**
  * Parses JSON category output from the LLM text.
@@ -58,8 +61,12 @@ export async function classifyWithEfficia(
   const baseUrl = config.baseUrl || process.env.EFFICIA_API_BASE_URL || 'https://platform.efficia.io';
   const endpoint = `${baseUrl.replace(/\/$/, '')}/api/chat/agent/deployments/${config.deploymentId}`;
 
-  const isDeepSeek = config.modelName.toLowerCase().includes('deepseek');
-  const defaultPricing = isDeepSeek ? DEFAULT_EFFICIA_PRICING.deepseek : DEFAULT_EFFICIA_PRICING.gpt;
+  const lowerName = config.modelName.toLowerCase();
+  const defaultPricing = lowerName.includes('deepseek')
+    ? DEFAULT_EFFICIA_PRICING.deepseek
+    : lowerName.includes('claude')
+      ? DEFAULT_EFFICIA_PRICING.claude
+      : DEFAULT_EFFICIA_PRICING.gpt;
 
   const inputPrice = (config.inputTokenPricePerMillion ?? defaultPricing.input) / 1_000_000;
   const outputPrice = (config.outputTokenPricePerMillion ?? defaultPricing.output) / 1_000_000;
@@ -87,6 +94,8 @@ export async function classifyWithEfficia(
   let accumulatedText = '';
   let reportedPromptTokens = 0;
   let reportedCompletionTokens = 0;
+  const rawEvents: string[] = [];
+  let streamError: string | undefined;
 
   if (response.body) {
     const reader = response.body.getReader();
@@ -108,9 +117,15 @@ export async function classifyWithEfficia(
         if (trimmed.startsWith('data:')) {
           const rawData = trimmed.replace(/^data:\s*/, '');
           if (rawData === '[DONE]') continue;
+          rawEvents.push(rawData);
 
           try {
             const parsed = JSON.parse(rawData);
+            if (parsed && typeof parsed === 'object' && (parsed.type === 'error' || parsed.error)) {
+              const detail = parsed.error ?? parsed.message ?? parsed;
+              streamError = typeof detail === 'string' ? detail : JSON.stringify(detail);
+            }
+
             if (typeof parsed === 'string') {
               accumulatedText += parsed;
             } else if (parsed.token !== undefined) {
@@ -141,6 +156,19 @@ export async function classifyWithEfficia(
 
   const endTime = performance.now();
   const latencyMs = Math.round((endTime - startTime) * 100) / 100;
+
+  if (process.env.EFFICIA_DEBUG === '1') {
+    console.log(`\n[Efficia debug] ${config.modelName} raw SSE events (${rawEvents.length}):`);
+    for (const event of rawEvents) console.log(`  ${event}`);
+  }
+
+  // The agent reports failures as an error event and/or a canned reply over HTTP 200.
+  // Throw so the runner counts it as an error instead of a wrong classification.
+  if (streamError || EFFICIA_AGENT_ERROR_PATTERN.test(accumulatedText.trim())) {
+    throw new Error(
+      `Efficia agent error on deployment ${config.deploymentId} (${config.modelName}): ${streamError ?? accumulatedText.trim()}`
+    );
+  }
 
   const promptTokens = reportedPromptTokens || Math.ceil(conversationText.length / 4);
   const completionTokens = reportedCompletionTokens || Math.ceil(accumulatedText.length / 4);

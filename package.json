@@ -2,19 +2,21 @@
   "name": "helpdesk-routing-benchmark",
   "version": "1.0.0",
   "type": "module",
-  "description": "Head-to-head intent classification benchmark comparing Jev (System 1 via OpenRouter) against GPT-6 Luna and DeepSeek (via Efficia API).",
+  "description": "Head-to-head intent classification benchmark comparing Jev (System 1 via OpenRouter) against GPT-6 Luna, DeepSeek and Claude Sonnet (via Efficia API).",
   "main": "scripts/jev-client.ts",
   "scripts": {
     "test:jev": "tsx scripts/test-jev.ts",
     "test:openai": "tsx scripts/test-openai.ts",
     "test:gpt": "tsx scripts/test-openai.ts",
     "test:deepseek": "tsx scripts/test-deepseek.ts",
+    "test:claude": "tsx scripts/test-claude.ts",
     "test:efficia": "tsx scripts/test-efficia.ts",
     "generate:data": "tsx scripts/generate-dataset.ts",
     "run:benchmark": "tsx scripts/benchmark-runner.ts",
     "benchmark:jev": "tsx scripts/benchmark-runner.ts --models jev",
     "benchmark:openai": "tsx scripts/benchmark-runner.ts --models openai",
     "benchmark:deepseek": "tsx scripts/benchmark-runner.ts --models deepseek",
+    "benchmark:claude": "tsx scripts/benchmark-runner.ts --models claude",
     "view": "node -e 'const open = process.platform === \"darwin\" ? \"open\" : process.platform === \"win32\" ? \"start\" : \"xdg-open\"; require(\"child_process\").exec(`${open} reports/latest.html`);'"
   },
   "dependencies": {

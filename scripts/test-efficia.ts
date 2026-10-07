@@ -1,6 +1,7 @@
 import * as dotenv from 'dotenv';
 import { classifyWithOpenAI } from './openai-client.js';
 import { classifyWithDeepSeek } from './deepseek-client.js';
+import { classifyWithClaude } from './claude-client.js';
 
 dotenv.config();
 
@@ -9,17 +10,20 @@ async function main() {
 
   const modelChoice = (process.argv[2] || 'deepseek').toLowerCase();
   const isDeepSeek = modelChoice === 'deepseek';
+  const isClaude = modelChoice === 'claude' || modelChoice === 'sonnet';
 
   const testConversation = `Employee: Hello, my June salary has not been credited yet. It has been 3 days since the usual pay date.
 Helpdesk Agent: I understand your concern. Did you receive any notification from your manager or finance about a processing delay?
 Employee: No notification at all. My teammates in the same department got theirs on Friday.`;
 
-  console.log(`\nTesting ${isDeepSeek ? 'DeepSeek' : 'OpenAI (GPT-6 Luna)'}...`);
+  console.log(`\nTesting ${isDeepSeek ? 'DeepSeek' : isClaude ? 'Claude Sonnet' : 'OpenAI (GPT-6 Luna)'}...`);
 
   try {
     const result = isDeepSeek
       ? await classifyWithDeepSeek(testConversation)
-      : await classifyWithOpenAI(testConversation);
+      : isClaude
+        ? await classifyWithClaude(testConversation)
+        : await classifyWithOpenAI(testConversation);
 
     console.log('\n✅ Result Received:');
     console.log(`• Extracted Category: ${result.category}`);

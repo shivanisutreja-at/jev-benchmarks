@@ -15,7 +15,7 @@ export interface ClassificationResult {
 }
 
 export interface ModelAdapter {
-  id: string; // e.g. 'jev', 'openai', 'deepseek'
+  id: string; // e.g. 'jev', 'openai', 'deepseek', 'claude'
   name: string; // e.g. 'Jev (~typesafe/jev-latest)', 'OpenAI (GPT-6 Luna)', 'DeepSeek'
   isConfigured(): boolean;
   classify(conversationText: string): Promise<ClassificationResult>;

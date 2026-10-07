@@ -1,6 +1,6 @@
 # Helpdesk Routing Intent Classification Benchmark
 
-A head-to-head benchmarking suite comparing **Jev** (a non-autoregressive "System One" decision model by TypeSafe AI via OpenRouter) against frontier generative LLMs (**GPT-6 Luna** and **DeepSeek**) running through Efficia AI agent deployments.
+A head-to-head benchmarking suite comparing **Jev** (a non-autoregressive "System One" decision model by TypeSafe AI via OpenRouter) against frontier generative LLMs (**GPT-6 Luna**, **DeepSeek** and **Claude Sonnet**) running through Efficia AI agent deployments.
 
 Evaluates models across **250 realistic helpdesk scenarios** on:
 - **Decision Speed & Latency** (Mean, P50, P95)
@@ -12,21 +12,20 @@ Evaluates models across **250 realistic helpdesk scenarios** on:
 ## 🏛️ Architecture
 
 ```
-                          ┌──────────────────────────────────────────────┐
-                          │         Benchmark Runner Script              │
-                          │      (scripts/benchmark-runner.ts)           │
-                          └───────┬──────────────────────┬───────────────┘
-                                  │                      │
-               ┌──────────────────┴──────────────┐       │
-               │         Efficia REST API        │       │ Direct API / OpenRouter
-               ▼                                 ▼       ▼
-      ┌─────────────────┐      ┌─────────────────┐ ┌───────────────┐
-      │ Efficia Agent 1 │      │ Efficia Agent 2 │ │  Jev Script   │
-      │  (gpt-6-luna)   │      │   (DeepSeek)    │ │ (~typesafe/jev│
-      └─────────────────┘      └─────────────────┘ └───────────────┘
-               │                        │                  │
-               └──────────────────┬─────┴──────────────────┘
-                                  ▼
+              ┌───────────────────────────────────────────────────────────┐
+              │                  Benchmark Runner Script                  │
+              │               (scripts/benchmark-runner.ts)               │
+              └───────────┬───────────────────────────────────┬───────────┘
+                          │                                   │
+                          │ Efficia REST API                  │ OpenRouter
+        ┌─────────────────┼─────────────────┐                 │
+        ▼                 ▼                 ▼                 ▼
+┌───────────────┐ ┌───────────────┐ ┌───────────────┐ ┌───────────────┐
+│Efficia Agent 1│ │Efficia Agent 2│ │Efficia Agent 3│ │   Jev Script  │
+│  (gpt-6-luna) │ │   (DeepSeek)  │ │(Claude Sonnet)│ │(~typesafe/jev)│
+└───────┬───────┘ └───────┬───────┘ └───────┬───────┘ └───────┬───────┘
+        └─────────────────┴────────┬────────┴─────────────────┘
+                                   ▼
                    [Latency, Cost & Accuracy Engine]
 ```
 
@@ -84,6 +83,10 @@ EFFICIA_GPT_API_KEY=your-gpt-api-key
 # Agent 2 (DeepSeek) Configuration
 EFFICIA_DEEPSEEK_DEPLOYMENT_ID=your-deepseek-deployment-uuid
 EFFICIA_DEEPSEEK_API_KEY=your-deepseek-api-key
+
+# Agent 3 (Claude Sonnet) Configuration
+EFFICIA_CLAUDE_DEPLOYMENT_ID=your-claude-deployment-uuid
+EFFICIA_CLAUDE_API_KEY=your-claude-api-key
 ```
 
 ---
@@ -115,6 +118,11 @@ You can verify each model connection independently:
   npm run test:gpt
   ```
 
+* **Test Claude Sonnet (via Efficia API):**
+  ```bash
+  npm run test:claude
+  ```
+
 ### 3. Run the Benchmark with Configurable Models
 
 You can run individual models, any alternate combination, or all configured models:
@@ -133,9 +141,14 @@ npm run benchmark:openai
 npm run run:benchmark -- --models deepseek
 npm run benchmark:deepseek
 
+# Run only Claude Sonnet
+npm run run:benchmark -- --models claude
+npm run benchmark:claude
+
 # Run alternate combinations:
 npm run run:benchmark -- --models jev,deepseek --limit 20
 npm run run:benchmark -- --models jev,openai --limit 10
+npm run run:benchmark -- --models jev,claude --limit 10
 
 # Boolean flag syntax is also supported:
 npm run run:benchmark -- --jev --deepseek --limit 10
@@ -152,16 +165,16 @@ Reports are automatically saved to `reports/benchmark-results-[timestamp].json`.
 
 At completion, the runner outputs a side-by-side comparison table:
 
-| Metric | Jev (~typesafe/jev-latest) | GPT-6 Luna (Efficia) | DeepSeek (Efficia) |
-| :--- | :--- | :--- | :--- |
-| **Strict Acc %** | % matching primary ground truth | % matching primary ground truth | % matching primary ground truth |
-| **Relaxed Acc %** | % matching primary OR secondary | % matching primary OR secondary | % matching primary OR secondary |
-| **Single-Intent Acc** | % on clear tickets | % on clear tickets | % on clear tickets |
-| **Multi-Intent Acc** | % on complex edge cases | % on complex edge cases | % on complex edge cases |
-| **Avg Latency** | Milliseconds | Milliseconds | Milliseconds |
-| **P95 Latency** | Milliseconds | Milliseconds | Milliseconds |
-| **Total Cost ($)** | Total USD for run | Total USD for run | Total USD for run |
-| **Cost / 10k Decisions** | Projected USD for 10k calls | Projected USD for 10k calls | Projected USD for 10k calls |
+| Metric | Jev (~typesafe/jev-latest) | GPT-6 Luna (Efficia) | DeepSeek (Efficia) | Claude Sonnet (Efficia) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Strict Acc %** | % matching primary ground truth | % matching primary ground truth | % matching primary ground truth | % matching primary ground truth |
+| **Relaxed Acc %** | % matching primary OR secondary | % matching primary OR secondary | % matching primary OR secondary | % matching primary OR secondary |
+| **Single-Intent Acc** | % on clear tickets | % on clear tickets | % on clear tickets | % on clear tickets |
+| **Multi-Intent Acc** | % on complex edge cases | % on complex edge cases | % on complex edge cases | % on complex edge cases |
+| **Avg Latency** | Milliseconds | Milliseconds | Milliseconds | Milliseconds |
+| **P95 Latency** | Milliseconds | Milliseconds | Milliseconds | Milliseconds |
+| **Total Cost ($)** | Total USD for run | Total USD for run | Total USD for run | Total USD for run |
+| **Cost / 10k Decisions** | Projected USD for 10k calls | Projected USD for 10k calls | Projected USD for 10k calls | Projected USD for 10k calls |
 
 ---
 

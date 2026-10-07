@@ -5,14 +5,15 @@ import { BenchmarkConfig } from './types.js';
 
 dotenv.config();
 
-export const ALL_SUPPORTED_MODELS = ['jev', 'openai', 'deepseek'];
+export const ALL_SUPPORTED_MODELS = ['jev', 'openai', 'deepseek', 'claude'];
 
 /**
- * Normalizes user model names (e.g. 'gpt' -> 'openai')
+ * Normalizes user model names (e.g. 'gpt' -> 'openai', 'sonnet' -> 'claude')
  */
 export function normalizeModelName(name: string): string {
   const lower = name.trim().toLowerCase();
   if (lower === 'gpt' || lower === 'gpt-6-luna' || lower === 'gpt6') return 'openai';
+  if (lower === 'sonnet' || lower === 'claude-sonnet' || lower === 'anthropic') return 'claude';
   return lower;
 }
 
@@ -53,11 +54,12 @@ export function getBenchmarkConfig(): BenchmarkConfig {
     selectedModels = modelsList;
   }
 
-  // 3. Boolean model toggles: --jev, --openai, --gpt, --deepseek
+  // 3. Boolean model toggles: --jev, --openai, --gpt, --deepseek, --claude, --sonnet
   const toggleModels: string[] = [];
   if (args.includes('--jev')) toggleModels.push('jev');
   if (args.includes('--openai') || args.includes('--gpt')) toggleModels.push('openai');
   if (args.includes('--deepseek')) toggleModels.push('deepseek');
+  if (args.includes('--claude') || args.includes('--sonnet')) toggleModels.push('claude');
   if (toggleModels.length > 0) {
     selectedModels = toggleModels;
   }

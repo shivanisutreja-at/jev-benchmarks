@@ -5,6 +5,7 @@ import { ModelAdapter } from './types.js';
 import { jevAdapter } from './jev-client.js';
 import { openAIAdapter } from './openai-client.js';
 import { deepSeekAdapter } from './deepseek-client.js';
+import { claudeAdapter } from './claude-client.js';
 import { getBenchmarkConfig } from './config.js';
 import { Scenario, generateScenarios } from './generate-dataset.js';
 import { generateHtmlReport } from './html-report-generator.js';
@@ -64,6 +65,7 @@ const REGISTERED_ADAPTERS: Record<string, ModelAdapter> = {
   jev: jevAdapter,
   openai: openAIAdapter,
   deepseek: deepSeekAdapter,
+  claude: claudeAdapter,
 };
 
 async function main() {
