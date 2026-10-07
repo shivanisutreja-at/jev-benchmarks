@@ -25,17 +25,7 @@ export const CATEGORY_DEFINITIONS: Record<string, string> = {
   TAL: 'Talent & Training: Training programs, certifications, professional development courses.',
 };
 
-export const ROUTING_INSTRUCTIONS = `You are the central triage agent for the Helpdesk Support Platform.
-Evaluate the conversation and decide which department must take ownership of this ticket.
-
-Departments:
-- PYC: Payroll & Compliance
-- DTE: Data Management & Tools (attendance, biometric, leave, transfer)
-- EMP: Employment Management (letters, policies, portal login, grievances)
-- ONB: Onboarding & Day-1 access
-- ASR: Annual Reviews, promotions, increments, bonuses
-- PMS: Performance reviews, appraisal ratings, goals
-- TAL: Talent & Training programs
+export const ROUTING_INSTRUCTIONS = `Identify the department responsible for resolving this customer ticket.
 
 Tie-Breaker Rules:
 1. Root-Cause Rule: If issue B is caused by issue A (e.g., biometric punch failure leading to attendance error which caused a salary deduction), route to the ROOT CAUSE (DTE) who must correct data first.
